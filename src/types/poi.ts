@@ -1,4 +1,5 @@
 export interface POI {
+  id: string;
   title: string;
   description: string;
   latitude: number;

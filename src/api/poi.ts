@@ -34,3 +34,14 @@ export const getPOIs = async (): Promise<POI[]> => {
     throw error;
   }
 };
+
+export const deletePOIService = async (poiId: string): Promise<void> => {
+  try {
+    await axios.delete(`${API_URL}/pois/${poiId}`);
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      throw new Error(`Failed to delete POI: ${error.message}`);
+    }
+    throw error;
+  }
+};
