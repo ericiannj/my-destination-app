@@ -22,3 +22,15 @@ export const createPOI = async (poiData: POI): Promise<POIResponse> => {
     throw error;
   }
 };
+
+export const getPOIs = async (): Promise<POI[]> => {
+  try {
+    const response: AxiosResponse<POI[]> = await axios.get(`${API_URL}/pois`);
+    return response.data;
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      throw new Error(`Failed to fetch POIs: ${error.message}`);
+    }
+    throw error;
+  }
+};
