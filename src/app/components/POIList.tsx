@@ -1,17 +1,21 @@
 import React, { SyntheticEvent, useState } from 'react';
 import { X, MapPin } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useGetPOIs } from '../hooks/useGetPOIs';
+import { POIResponse } from '../hooks/useGetPOIs';
 import { useDeletePOI } from '../hooks/useDeletePOI';
 import { POI } from '@/types/poi';
 import POIDialog from './POIDialog';
 
-const POIList = () => {
+type POIListProps = {
+  poiResponse: POIResponse;
+};
+
+const POIList = ({ poiResponse }: POIListProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [selectedPOI, setSelectedPOI] = useState<POI | undefined>();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const { pois, loading, error, refreshPOIs } = poiResponse;
 
-  const { pois, loading, error, refreshPOIs } = useGetPOIs();
   const { deletePOI, isDeleting } = useDeletePOI();
 
   const handlePOIClick = (poi: POI) => {

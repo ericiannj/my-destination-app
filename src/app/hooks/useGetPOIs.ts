@@ -2,7 +2,14 @@ import { useState, useEffect } from 'react';
 import { POI } from '@/types/poi';
 import { getPOIs } from '@/api/poi';
 
-export const useGetPOIs = () => {
+export type POIResponse = {
+  pois: POI[];
+  loading: boolean;
+  error: string | null;
+  refreshPOIs: () => Promise<void>;
+};
+
+export const useGetPOIs = (): POIResponse => {
   const [pois, setPois] = useState<POI[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

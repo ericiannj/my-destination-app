@@ -4,6 +4,10 @@ import React, { useRef, useEffect, useState, useCallback } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { MapPopper } from './MapPopper';
+import { POIResponse } from '../hooks/useGetPOIs';
+import { MapPinCheck } from 'lucide-react';
+import { createRoot } from 'react-dom/client';
+import { POI } from '@/types/poi';
 
 interface MapProps {
   initialCenter?: [number, number];
@@ -11,6 +15,7 @@ interface MapProps {
   mapStyle?: string;
   width?: string;
   height?: string;
+  poiResponse: POIResponse;
 }
 
 export type Coordinates = {
@@ -26,21 +31,63 @@ const Map: React.FC<MapProps> = ({
   mapStyle = 'mapbox://styles/mapbox/streets-v12',
   width = '100%',
   height = 'calc(100vh - 64px)',
+  poiResponse,
 }) => {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
   const marker = useRef<mapboxgl.Marker | null>(null);
+  const poiMarkers = useRef<{ [key: string]: mapboxgl.Marker }>({});
   const [mapLoaded, setMapLoaded] = useState(false);
   const [showPopper, setShowPopper] = useState(false);
   const [coordinates, setCoordinates] = useState<Coordinates>(null);
+  const [selectedPOI, setSelectedPOI] = useState<POI | null>(null);
+  const { pois } = poiResponse;
+
+  const createMarkerElement = () => {
+    const el = document.createElement('div');
+    el.className =
+      'p-2 rounded-full bg-white shadow-lg cursor-pointer hover:bg-gray-50 transition-colors';
+
+    const root = createRoot(el);
+    root.render(<MapPinCheck size={20} color="#3B82F6" strokeWidth={2} />);
+
+    return el;
+  };
+
+  const addPOIMarkers = useCallback(() => {
+    if (!map.current) return;
+
+    Object.values(poiMarkers.current).forEach((marker) => marker.remove());
+    poiMarkers.current = {};
+
+    pois.forEach((poi) => {
+      const el = createMarkerElement();
+
+      const marker = new mapboxgl.Marker({
+        element: el,
+        anchor: 'center',
+      })
+        .setLngLat([poi.longitude, poi.latitude])
+        .addTo(map.current!);
+
+      el.addEventListener('click', () => {
+        setSelectedPOI(poi);
+        setCoordinates({
+          latitude: poi.latitude,
+          longitude: poi.longitude,
+        });
+        setShowPopper(true);
+      });
+
+      poiMarkers.current[poi.id] = marker;
+    });
+  }, [pois]);
 
   const handleMapClick = useCallback((e: mapboxgl.MapMouseEvent) => {
     const coords: [number, number] = [e.lngLat.lng, e.lngLat.lat];
 
     if (!marker.current) {
-      // Create marker if it doesn't exist
-      const el = document.createElement('div');
-      el.className = 'w-4 h-4 bg-red-500 rounded-full';
+      const el = createMarkerElement();
 
       marker.current = new mapboxgl.Marker({
         element: el,
@@ -49,10 +96,10 @@ const Map: React.FC<MapProps> = ({
         .setLngLat(coords)
         .addTo(map.current!);
     } else {
-      // Update marker position
       marker.current.setLngLat(coords);
     }
 
+    setSelectedPOI(null);
     setCoordinates({ latitude: coords[1], longitude: coords[0] });
     setShowPopper(true);
   }, []);
@@ -86,8 +133,16 @@ const Map: React.FC<MapProps> = ({
         marker.current.remove();
         marker.current = null;
       }
+      Object.values(poiMarkers.current).forEach((marker) => marker.remove());
+      poiMarkers.current = {};
     };
   }, []);
+
+  useEffect(() => {
+    if (map.current && mapLoaded) {
+      addPOIMarkers();
+    }
+  }, [mapLoaded, addPOIMarkers]);
 
   useEffect(() => {
     if (map.current && mapLoaded) {
@@ -104,9 +159,13 @@ const Map: React.FC<MapProps> = ({
 
   const handleClosePopper = () => {
     setShowPopper(false);
+    setSelectedPOI(null);
   };
 
   const getMarkerElement = () => {
+    if (selectedPOI) {
+      return poiMarkers.current[selectedPOI.id]?.getElement() || null;
+    }
     return marker.current?.getElement() || null;
   };
 
@@ -117,7 +176,7 @@ const Map: React.FC<MapProps> = ({
         className="rounded-lg overflow-hidden"
         style={{ width, height }}
       />
-      {showPopper && marker.current && coordinates && (
+      {showPopper && coordinates && (
         <MapPopper
           markerElement={getMarkerElement()}
           coordinates={coordinates}
