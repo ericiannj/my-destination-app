@@ -9,6 +9,7 @@ interface MapPopperProps {
   markerElement: HTMLElement | null;
   coordinates: Coordinates;
   onClose: () => void;
+  refreshPOIs: () => Promise<void>;
 }
 
 type Poi = {
@@ -25,6 +26,7 @@ export const MapPopper: React.FC<MapPopperProps> = ({
   markerElement,
   coordinates,
   onClose,
+  refreshPOIs,
 }) => {
   const [poi, setPoi] = useState<Poi>(initialPoi);
   const [position, setPosition] = useState({ left: 0, top: 0 });
@@ -89,13 +91,8 @@ export const MapPopper: React.FC<MapPopperProps> = ({
     };
   }, [onClose]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    createNewPOI();
-    onClose();
-  };
-
-  const createNewPOI = async () => {
     const newPOI: POI = {
       title: poi.name,
       description: poi.description,
@@ -104,8 +101,9 @@ export const MapPopper: React.FC<MapPopperProps> = ({
     };
 
     try {
-      const createdPOI = await createPOI(newPOI);
-      console.log('Successfully created POI:', createdPOI);
+      await createPOI(newPOI);
+      refreshPOIs();
+      onClose();
     } catch (error) {
       console.error('Error creating POI:', error);
     }

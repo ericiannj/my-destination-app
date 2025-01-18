@@ -181,6 +181,7 @@ const Map: React.FC<MapProps> = ({
           markerElement={getMarkerElement()}
           coordinates={coordinates}
           onClose={handleClosePopper}
+          refreshPOIs={poiResponse.refreshPOIs}
         />
       )}
     </div>
