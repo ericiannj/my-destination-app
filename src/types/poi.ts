@@ -15,3 +15,8 @@ export interface POIResponse {
   createdAt: string;
   updatedAt: string;
 }
+
+export interface UpdatePOIData {
+  title: string;
+  description: string;
+}

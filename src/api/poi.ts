@@ -1,4 +1,4 @@
-import { POI, POIResponse } from '@/types/poi';
+import { POI, POIResponse, UpdatePOIData } from '@/types/poi';
 import axios, { AxiosResponse } from 'axios';
 
 const API_URL = process.env.NEXT_PUBLIC_DESTINATION_API_URL;
@@ -41,6 +41,20 @@ export const deletePOIService = async (poiId: string): Promise<void> => {
   } catch (error) {
     if (axios.isAxiosError(error)) {
       throw new Error(`Failed to delete POI: ${error.message}`);
+    }
+    throw error;
+  }
+};
+
+export const updatePOIService = async (
+  poiId: string,
+  data: UpdatePOIData,
+): Promise<void> => {
+  try {
+    await axios.patch(`${API_URL}/pois/${poiId}`, data);
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      throw new Error(`Failed to update POI: ${error.message}`);
     }
     throw error;
   }
