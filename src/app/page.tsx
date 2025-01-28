@@ -23,7 +23,10 @@ export default function Home() {
   return (
     <main className="min-h-screen p-8">
       <ClientOnly>
-        <MapWithNoSSR poiResponse={poiResponse} />
+        <MapWithNoSSR
+          poiResponse={poiResponse}
+          handlePOIClick={handlePOIClick}
+        />
         <POIList poiResponse={poiResponse} handlePOIClick={handlePOIClick} />
         <POIDialog
           poi={selectedPOI}

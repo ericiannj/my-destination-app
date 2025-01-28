@@ -16,6 +16,7 @@ interface MapProps {
   width?: string;
   height?: string;
   poiResponse: POIResponse;
+  handlePOIClick: (poi: POI) => void;
 }
 
 export type Coordinates = {
@@ -32,6 +33,7 @@ const Map: React.FC<MapProps> = ({
   width = '100%',
   height = 'calc(100vh - 64px)',
   poiResponse,
+  handlePOIClick,
 }) => {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
@@ -71,19 +73,23 @@ const Map: React.FC<MapProps> = ({
         .addTo(map.current!);
 
       el.addEventListener('click', () => {
-        setSelectedPOI(poi);
-        setCoordinates({
-          latitude: poi.latitude,
-          longitude: poi.longitude,
-        });
-        setShowPopper(true);
+        // When clicking an existing POI, trigger the edit handler
+        handlePOIClick(poi);
       });
 
       poiMarkers.current[poi.id] = marker;
     });
-  }, [pois]);
+  }, [pois, handlePOIClick]);
 
   const handleMapClick = useCallback((e: mapboxgl.MapMouseEvent) => {
+    // Only handle clicks on empty map space (not on POI markers)
+    if (
+      e.originalEvent.target instanceof Element &&
+      e.originalEvent.target.closest('.mapboxgl-marker')
+    ) {
+      return;
+    }
+
     const coords: [number, number] = [e.lngLat.lng, e.lngLat.lat];
 
     if (!marker.current) {
@@ -99,6 +105,7 @@ const Map: React.FC<MapProps> = ({
       marker.current.setLngLat(coords);
     }
 
+    // Reset selected POI and show popper for creating new POI
     setSelectedPOI(null);
     setCoordinates({ latitude: coords[1], longitude: coords[0] });
     setShowPopper(true);
@@ -160,6 +167,10 @@ const Map: React.FC<MapProps> = ({
   const handleClosePopper = () => {
     setShowPopper(false);
     setSelectedPOI(null);
+    if (marker.current) {
+      marker.current.remove();
+      marker.current = null;
+    }
   };
 
   const getMarkerElement = () => {
