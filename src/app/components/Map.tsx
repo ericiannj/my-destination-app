@@ -39,6 +39,11 @@ const Map: React.FC<MapProps> = ({
   const map = useRef<mapboxgl.Map | null>(null);
   const temporaryMarker = useRef<mapboxgl.Marker | null>(null);
   const poiMarkers = useRef<{ [key: string]: mapboxgl.Marker }>({});
+  const initialConfigRef = useRef({
+    center: initialCenter,
+    zoom: initialZoom,
+    style: mapStyle,
+  });
   const [mapLoaded, setMapLoaded] = useState(false);
   const [showPopper, setShowPopper] = useState(false);
   const [coordinates, setCoordinates] = useState<Coordinates>(null);
@@ -138,9 +143,9 @@ const Map: React.FC<MapProps> = ({
 
     map.current = new mapboxgl.Map({
       container: mapContainer.current,
-      style: mapStyle,
-      center: initialCenter,
-      zoom: initialZoom,
+      style: initialConfigRef.current.style,
+      center: initialConfigRef.current.center,
+      zoom: initialConfigRef.current.zoom,
     });
 
     map.current.addControl(new mapboxgl.NavigationControl(), 'bottom-left');
@@ -175,17 +180,15 @@ const Map: React.FC<MapProps> = ({
   }, [mapLoaded, addPOIMarkers]);
 
   useEffect(() => {
-    if (map.current && mapLoaded) {
+    if (
+      map.current &&
+      mapLoaded &&
+      mapStyle !== initialConfigRef.current.style
+    ) {
       map.current.setStyle(mapStyle);
+      initialConfigRef.current.style = mapStyle;
     }
   }, [mapStyle, mapLoaded]);
-
-  useEffect(() => {
-    if (map.current && mapLoaded) {
-      map.current.setCenter(initialCenter);
-      map.current.setZoom(initialZoom);
-    }
-  }, [initialCenter, initialZoom, mapLoaded]);
 
   const handleClosePopper = () => {
     setShowPopper(false);
