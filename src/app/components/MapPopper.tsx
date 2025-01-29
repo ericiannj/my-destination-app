@@ -2,8 +2,8 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import type { Coordinates } from './Map';
-import { POI } from '@/types/poi';
 import { createPOI } from '@/api/poi';
+import { X } from 'lucide-react';
 
 interface MapPopperProps {
   markerElement: HTMLElement | null;
@@ -84,16 +84,24 @@ export const MapPopper: React.FC<MapPopperProps> = ({
       }
     };
 
+    const handleEscKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+
     document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleEscKey);
 
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleEscKey);
     };
   }, [onClose]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const newPOI: POI = {
+    const newPOI = {
       title: poi.name,
       description: poi.description,
       latitude: coordinates?.latitude ?? 0,
@@ -118,7 +126,14 @@ export const MapPopper: React.FC<MapPopperProps> = ({
         transform: 'translateY(-50%)',
       }}
     >
-      <div>
+      <div className="relative">
+        <button
+          onClick={onClose}
+          className="absolute -right-1 -top-1 p-1 hover:bg-gray-100 rounded-full"
+          aria-label="Close"
+        >
+          <X size={16} />
+        </button>
         <div className="absolute left-0 top-1/2 -translate-x-full -translate-y-1/2">
           <div className="w-2 h-2 bg-white rotate-45 transform -translate-x-1" />
         </div>

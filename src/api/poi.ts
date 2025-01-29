@@ -3,7 +3,11 @@ import axios, { AxiosResponse } from 'axios';
 
 const API_URL = process.env.NEXT_PUBLIC_DESTINATION_API_URL;
 
-export const createPOI = async (poiData: POI): Promise<POIResponse> => {
+type CreatePOIData = Omit<POI, 'id'>;
+
+export const createPOI = async (
+  poiData: CreatePOIData,
+): Promise<POIResponse> => {
   try {
     const response: AxiosResponse<POIResponse> = await axios.post(
       `${API_URL}/pois`,
