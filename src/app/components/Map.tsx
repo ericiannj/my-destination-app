@@ -37,7 +37,7 @@ const Map: React.FC<MapProps> = ({
 }) => {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
-  const marker = useRef<mapboxgl.Marker | null>(null);
+  const temporaryMarker = useRef<mapboxgl.Marker | null>(null);
   const poiMarkers = useRef<{ [key: string]: mapboxgl.Marker }>({});
   const [mapLoaded, setMapLoaded] = useState(false);
   const [showPopper, setShowPopper] = useState(false);
@@ -45,7 +45,8 @@ const Map: React.FC<MapProps> = ({
   const [selectedPOI, setSelectedPOI] = useState<POI | null>(null);
   const { pois } = poiResponse;
 
-  const createMarkerElement = () => {
+  // Function for creating existing POI markers
+  const createExistingPOIMarker = () => {
     const el = document.createElement('div');
     el.className =
       'p-2 rounded-full bg-white shadow-lg cursor-pointer hover:bg-gray-50 transition-colors';
@@ -56,6 +57,25 @@ const Map: React.FC<MapProps> = ({
     return el;
   };
 
+  // Function for creating new POI marker
+  const createNewPOIMarker = () => {
+    const el = document.createElement('div');
+    el.className =
+      'p-2 rounded-full bg-blue-500 shadow-lg cursor-pointer hover:bg-blue-600 transition-colors';
+
+    const root = createRoot(el);
+    root.render(<MapPinCheck size={20} color="white" strokeWidth={2} />); // Changed icon color to white
+
+    return el;
+  };
+
+  const removeTemporaryMarker = useCallback(() => {
+    if (temporaryMarker.current) {
+      temporaryMarker.current.remove();
+      temporaryMarker.current = null;
+    }
+  }, []);
+
   const addPOIMarkers = useCallback(() => {
     if (!map.current) return;
 
@@ -63,7 +83,7 @@ const Map: React.FC<MapProps> = ({
     poiMarkers.current = {};
 
     pois.forEach((poi) => {
-      const el = createMarkerElement();
+      const el = createExistingPOIMarker(); // Using existing POI style
 
       const marker = new mapboxgl.Marker({
         element: el,
@@ -75,11 +95,13 @@ const Map: React.FC<MapProps> = ({
       el.addEventListener('click', () => {
         // When clicking an existing POI, trigger the edit handler
         handlePOIClick(poi);
+        setShowPopper(false);
+        removeTemporaryMarker();
       });
 
       poiMarkers.current[poi.id] = marker;
     });
-  }, [pois, handlePOIClick]);
+  }, [pois, handlePOIClick, removeTemporaryMarker]);
 
   const handleMapClick = useCallback((e: mapboxgl.MapMouseEvent) => {
     // Only handle clicks on empty map space (not on POI markers)
@@ -92,17 +114,17 @@ const Map: React.FC<MapProps> = ({
 
     const coords: [number, number] = [e.lngLat.lng, e.lngLat.lat];
 
-    if (!marker.current) {
-      const el = createMarkerElement();
+    if (!temporaryMarker.current) {
+      const el = createNewPOIMarker(); // Using new POI style for the temporary marker
 
-      marker.current = new mapboxgl.Marker({
+      temporaryMarker.current = new mapboxgl.Marker({
         element: el,
         anchor: 'center',
       })
         .setLngLat(coords)
         .addTo(map.current!);
     } else {
-      marker.current.setLngLat(coords);
+      temporaryMarker.current.setLngLat(coords);
     }
 
     // Reset selected POI and show popper for creating new POI
@@ -136,14 +158,15 @@ const Map: React.FC<MapProps> = ({
         map.current.remove();
         map.current = null;
       }
-      if (marker.current) {
-        marker.current.remove();
-        marker.current = null;
+      if (temporaryMarker.current) {
+        temporaryMarker.current.remove();
+        temporaryMarker.current = null;
       }
+      removeTemporaryMarker();
       Object.values(poiMarkers.current).forEach((marker) => marker.remove());
       poiMarkers.current = {};
     };
-  }, []);
+  }, [handleMapClick, removeTemporaryMarker]);
 
   useEffect(() => {
     if (map.current && mapLoaded) {
@@ -167,9 +190,9 @@ const Map: React.FC<MapProps> = ({
   const handleClosePopper = () => {
     setShowPopper(false);
     setSelectedPOI(null);
-    if (marker.current) {
-      marker.current.remove();
-      marker.current = null;
+    if (temporaryMarker.current) {
+      temporaryMarker.current.remove();
+      temporaryMarker.current = null;
     }
   };
 
@@ -177,7 +200,7 @@ const Map: React.FC<MapProps> = ({
     if (selectedPOI) {
       return poiMarkers.current[selectedPOI.id]?.getElement() || null;
     }
-    return marker.current?.getElement() || null;
+    return temporaryMarker.current?.getElement() || null;
   };
 
   return (
