@@ -8,6 +8,7 @@ import { POIResponse } from '../hooks/useGetPOIs';
 import { MapPinCheck } from 'lucide-react';
 import { createRoot } from 'react-dom/client';
 import { POI } from '@/types/poi';
+import POIList from './POIList';
 
 interface MapProps {
   initialCenter?: [number, number];
@@ -16,7 +17,7 @@ interface MapProps {
   width?: string;
   height?: string;
   poiResponse: POIResponse;
-  handlePOIClick: (poi: POI) => void;
+  handlePOIEdit: (poi: POI) => void;
 }
 
 export type Coordinates = {
@@ -33,7 +34,7 @@ const Map: React.FC<MapProps> = ({
   width = '100%',
   height = 'calc(100vh - 64px)',
   poiResponse,
-  handlePOIClick,
+  handlePOIEdit,
 }) => {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
@@ -81,6 +82,18 @@ const Map: React.FC<MapProps> = ({
     }
   }, []);
 
+  const centerMap = useCallback((latitude: number, longitude: number) => {
+    if (map.current) {
+      // Fly to the location with animation
+      map.current.flyTo({
+        center: [longitude, latitude],
+        zoom: 15,
+        essential: true, // This animation is considered essential for the user experience
+        duration: 1000, // Animation duration in milliseconds
+      });
+    }
+  }, []);
+
   const addPOIMarkers = useCallback(() => {
     if (!map.current) return;
 
@@ -99,14 +112,14 @@ const Map: React.FC<MapProps> = ({
 
       el.addEventListener('click', () => {
         // When clicking an existing POI, trigger the edit handler
-        handlePOIClick(poi);
+        handlePOIEdit(poi);
         setShowPopper(false);
         removeTemporaryMarker();
       });
 
       poiMarkers.current[poi.id] = marker;
     });
-  }, [pois, handlePOIClick, removeTemporaryMarker]);
+  }, [pois, handlePOIEdit, removeTemporaryMarker]);
 
   const handleMapClick = useCallback((e: mapboxgl.MapMouseEvent) => {
     // Only handle clicks on empty map space (not on POI markers)
@@ -221,6 +234,11 @@ const Map: React.FC<MapProps> = ({
           refreshPOIs={poiResponse.refreshPOIs}
         />
       )}
+      <POIList
+        poiResponse={poiResponse}
+        handlePOIEdit={handlePOIEdit}
+        onCenterMap={centerMap}
+      />
     </div>
   );
 };

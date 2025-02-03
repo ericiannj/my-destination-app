@@ -2,7 +2,6 @@
 
 import dynamic from 'next/dynamic';
 import ClientOnly from './components/ClientOnly';
-import POIList from './components/POIList';
 import { useGetPOIs } from './hooks/useGetPOIs';
 import POIDialog from './components/POIDialog';
 import { useState } from 'react';
@@ -15,7 +14,7 @@ export default function Home() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const poiResponse = useGetPOIs();
 
-  const handlePOIClick = (poi: POI) => {
+  const handlePOIEdit = (poi: POI) => {
     setSelectedPOI(poi);
     setIsDialogOpen(true);
   };
@@ -23,11 +22,7 @@ export default function Home() {
   return (
     <main className="min-h-screen p-8">
       <ClientOnly>
-        <MapWithNoSSR
-          poiResponse={poiResponse}
-          handlePOIClick={handlePOIClick}
-        />
-        <POIList poiResponse={poiResponse} handlePOIClick={handlePOIClick} />
+        <MapWithNoSSR poiResponse={poiResponse} handlePOIEdit={handlePOIEdit} />
         <POIDialog
           poi={selectedPOI}
           isOpen={isDialogOpen}

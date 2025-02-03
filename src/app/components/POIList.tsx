@@ -1,5 +1,5 @@
 import React, { SyntheticEvent, useState } from 'react';
-import { X, MapPin } from 'lucide-react';
+import { X, MapPin, Pencil } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { POIResponse } from '../hooks/useGetPOIs';
 import { useDeletePOI } from '../hooks/useDeletePOI';
@@ -7,10 +7,11 @@ import { POI } from '@/types/poi';
 
 type POIListProps = {
   poiResponse: POIResponse;
-  handlePOIClick: (poi: POI) => void;
+  handlePOIEdit: (poi: POI) => void;
+  onCenterMap: (latitude: number, longitude: number) => void;
 };
 
-const POIList = ({ poiResponse, handlePOIClick }: POIListProps) => {
+const POIList = ({ poiResponse, handlePOIEdit, onCenterMap }: POIListProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const { pois, loading, error, refreshPOIs } = poiResponse;
 
@@ -24,6 +25,16 @@ const POIList = ({ poiResponse, handlePOIClick }: POIListProps) => {
     } catch (error) {
       console.error('Failed to delete POI:', error);
     }
+  };
+
+  // Added handler to prevent event bubbling when editing
+  const handleEdit = (event: SyntheticEvent, poi: POI) => {
+    event.stopPropagation();
+    handlePOIEdit(poi);
+  };
+
+  const handleCenter = (poi: POI) => {
+    onCenterMap(poi.latitude, poi.longitude);
   };
 
   return (
@@ -107,7 +118,7 @@ const POIList = ({ poiResponse, handlePOIClick }: POIListProps) => {
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: index * 0.05 }}
-                        onClick={() => handlePOIClick(poi)}
+                        onClick={() => handleCenter(poi)}
                         className="p-2 hover:bg-gray-100 rounded cursor-pointer border border-gray-100 flex items-center justify-between"
                       >
                         <div className="flex-1">
@@ -119,6 +130,15 @@ const POIList = ({ poiResponse, handlePOIClick }: POIListProps) => {
                             Lat: {poi.latitude}, Long: {poi.longitude}
                           </div>
                         </div>
+                        <motion.button
+                          whileHover={{ scale: 1.1 }}
+                          whileTap={{ scale: 0.9 }}
+                          onClick={(event) => handleEdit(event, poi)}
+                          className="p-1 rounded hover:bg-gray-200"
+                          aria-label="Edit POI"
+                        >
+                          <Pencil className="h-4 w-4 text-gray-400 hover:text-gray-600 flex-shrink-0" />
+                        </motion.button>
                         <motion.button
                           whileHover={{ scale: 1.1 }}
                           whileTap={{ scale: 0.9 }}
