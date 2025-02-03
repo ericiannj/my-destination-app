@@ -1,4 +1,4 @@
-import React, { SyntheticEvent, useState } from 'react';
+import React, { SyntheticEvent } from 'react';
 import { X, MapPin, Pencil } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { POIResponse } from '../hooks/useGetPOIs';
@@ -9,10 +9,17 @@ type POIListProps = {
   poiResponse: POIResponse;
   handlePOIEdit: (poi: POI) => void;
   onCenterMap: (latitude: number, longitude: number) => void;
+  isOpen: boolean;
+  onToggleList: () => void;
 };
 
-const POIList = ({ poiResponse, handlePOIEdit, onCenterMap }: POIListProps) => {
-  const [isOpen, setIsOpen] = useState(false);
+const POIList = ({
+  poiResponse,
+  handlePOIEdit,
+  onCenterMap,
+  isOpen,
+  onToggleList,
+}: POIListProps) => {
   const { pois, loading, error, refreshPOIs } = poiResponse;
 
   const { deletePOI, isDeleting } = useDeletePOI();
@@ -47,7 +54,7 @@ const POIList = ({ poiResponse, handlePOIEdit, onCenterMap }: POIListProps) => {
             animate={{ scale: 1 }}
             exit={{ scale: 0 }}
             transition={{ duration: 0.1 }}
-            onClick={() => setIsOpen(true)}
+            onClick={onToggleList}
             className="p-2 bg-white rounded-lg shadow-lg hover:bg-gray-100"
             aria-label="Toggle POI List"
           >
@@ -78,7 +85,7 @@ const POIList = ({ poiResponse, handlePOIEdit, onCenterMap }: POIListProps) => {
                   <motion.button
                     whileHover={{ scale: 1.1 }}
                     whileTap={{ scale: 0.9 }}
-                    onClick={() => setIsOpen(false)}
+                    onClick={onToggleList}
                     className="p-1 rounded hover:bg-gray-200"
                     aria-label="Close POI List"
                   >

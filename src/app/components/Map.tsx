@@ -49,6 +49,7 @@ const Map: React.FC<MapProps> = ({
   const [showPopper, setShowPopper] = useState(false);
   const [coordinates, setCoordinates] = useState<Coordinates>(null);
   const [selectedPOI, setSelectedPOI] = useState<POI | null>(null);
+  const [isListOpen, setListOpen] = useState(false);
   const { pois } = poiResponse;
 
   // Function for creating existing POI markers
@@ -149,6 +150,7 @@ const Map: React.FC<MapProps> = ({
     setSelectedPOI(null);
     setCoordinates({ latitude: coords[1], longitude: coords[0] });
     setShowPopper(true);
+    setListOpen(false);
   }, []);
 
   useEffect(() => {
@@ -219,6 +221,11 @@ const Map: React.FC<MapProps> = ({
     return temporaryMarker.current?.getElement() || null;
   };
 
+  const handleToggleList = () => {
+    if (showPopper) setShowPopper(false);
+    setListOpen((prevState) => !prevState);
+  };
+
   return (
     <div className="relative">
       <div
@@ -238,6 +245,8 @@ const Map: React.FC<MapProps> = ({
         poiResponse={poiResponse}
         handlePOIEdit={handlePOIEdit}
         onCenterMap={centerMap}
+        isOpen={isListOpen}
+        onToggleList={handleToggleList}
       />
     </div>
   );
