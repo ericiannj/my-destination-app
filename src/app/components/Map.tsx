@@ -11,11 +11,6 @@ import { POI } from '@/types/poi';
 import POIList from './POIList';
 
 interface MapProps {
-  initialCenter?: [number, number];
-  initialZoom?: number;
-  mapStyle?: string;
-  width?: string;
-  height?: string;
   poiResponse: POIResponse;
   handlePOIEdit: (poi: POI) => void;
 }
@@ -25,26 +20,20 @@ export type Coordinates = {
   longitude: number;
 } | null;
 
+const MAP_STYLE = 'mapbox://styles/mapbox/streets-v12';
 mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN || '';
 
-const Map: React.FC<MapProps> = ({
-  initialCenter = [-74.006, 40.7128],
-  initialZoom = 12,
-  mapStyle = 'mapbox://styles/mapbox/streets-v12',
-  width = '100%',
-  height = 'calc(100vh - 64px)',
-  poiResponse,
-  handlePOIEdit,
-}) => {
+const Map: React.FC<MapProps> = ({ poiResponse, handlePOIEdit }) => {
   const mapContainer = useRef<HTMLDivElement>(null);
-  const map = useRef<mapboxgl.Map | null>(null);
-  const temporaryMarker = useRef<mapboxgl.Marker | null>(null);
+  const map = useRef<mapboxgl.Map>(null);
+  const temporaryMarker = useRef<mapboxgl.Marker>(null);
   const poiMarkers = useRef<{ [key: string]: mapboxgl.Marker }>({});
   const initialConfigRef = useRef({
-    center: initialCenter,
-    zoom: initialZoom,
-    style: mapStyle,
+    center: [-74.006, 40.7128] as [number, number],
+    zoom: 12,
+    style: MAP_STYLE,
   });
+
   const [mapLoaded, setMapLoaded] = useState(false);
   const [showPopper, setShowPopper] = useState(false);
   const [coordinates, setCoordinates] = useState<Coordinates>(null);
@@ -198,12 +187,12 @@ const Map: React.FC<MapProps> = ({
     if (
       map.current &&
       mapLoaded &&
-      mapStyle !== initialConfigRef.current.style
+      MAP_STYLE !== initialConfigRef.current.style
     ) {
-      map.current.setStyle(mapStyle);
-      initialConfigRef.current.style = mapStyle;
+      map.current.setStyle(MAP_STYLE);
+      initialConfigRef.current.style = MAP_STYLE;
     }
-  }, [mapStyle, mapLoaded]);
+  }, [mapLoaded]);
 
   const handleClosePopper = () => {
     setShowPopper(false);
@@ -231,7 +220,7 @@ const Map: React.FC<MapProps> = ({
       <div
         ref={mapContainer}
         className="rounded-lg overflow-hidden"
-        style={{ width, height }}
+        style={{ width: '100%', height: 'calc(100vh - 64px)' }}
       />
       {showPopper && coordinates && (
         <MapPopper
