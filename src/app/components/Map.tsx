@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useRef, useEffect, useState, useCallback } from 'react';
+import React, { useRef, useState, useCallback } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { MapPopper } from './MapPopper';
@@ -10,6 +10,7 @@ import { createRoot } from 'react-dom/client';
 import { POI } from '@/types/poi';
 import POIList from './POIList';
 import usePopulateMap from '../hooks/usePopulateMap';
+import useSetupMap from '../hooks/useSetupMap';
 
 interface MapProps {
   poiResponse: POIResponse;
@@ -21,21 +22,12 @@ export type Coordinates = {
   longitude: number;
 } | null;
 
-const MAP_STYLE = 'mapbox://styles/mapbox/streets-v12';
-mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN || '';
-
 const Map: React.FC<MapProps> = ({ poiResponse, handlePOIEdit }) => {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map>(null);
-  const initialConfigRef = useRef({
-    center: [-74.006, 40.7128] as [number, number],
-    zoom: 12,
-    style: MAP_STYLE,
-  });
   const temporaryMarker = useRef<mapboxgl.Marker>(null);
   const poiMarkers = useRef<{ [key: string]: mapboxgl.Marker }>({});
 
-  const [isMapLoading, setMapLoading] = useState(false);
   const [isCreatePopperOpen, setCreatePopperOpen] = useState(false);
   const [isListOpen, setListOpen] = useState(false);
   const [coordinates, setCoordinates] = useState<Coordinates>(null);
@@ -47,9 +39,47 @@ const Map: React.FC<MapProps> = ({ poiResponse, handlePOIEdit }) => {
     removeTemporaryMarker();
   };
 
+  const handleMapClick = useCallback((e: mapboxgl.MapMouseEvent) => {
+    // Only handle clicks on empty map space (not on POI markers)
+    if (
+      e.originalEvent.target instanceof Element &&
+      e.originalEvent.target.closest('.mapboxgl-marker')
+    ) {
+      return;
+    }
+
+    const coords: [number, number] = [e.lngLat.lng, e.lngLat.lat];
+
+    if (!temporaryMarker.current) {
+      const el = createNewPOIMarker(); // Using new POI style for the temporary marker
+
+      temporaryMarker.current = new mapboxgl.Marker({
+        element: el,
+        anchor: 'center',
+      })
+        .setLngLat(coords)
+        .addTo(map.current!);
+    } else {
+      temporaryMarker.current.setLngLat(coords);
+    }
+
+    // Reset selected POI and show popper for creating new POI
+    setSelectedPOI(null);
+    setCoordinates({ latitude: coords[1], longitude: coords[0] });
+    setCreatePopperOpen(true);
+    setListOpen(false);
+  }, []);
+
+  useSetupMap({
+    map,
+    mapContainer,
+    poiMarkers,
+    temporaryMarker,
+    handleMapClick,
+  });
+
   usePopulateMap({
     map,
-    isMapLoading,
     poiMarkers,
     poiResponse,
     handlePoiClick,
@@ -85,83 +115,6 @@ const Map: React.FC<MapProps> = ({ poiResponse, handlePOIEdit }) => {
       });
     }
   }, []);
-
-  const handleMapClick = useCallback((e: mapboxgl.MapMouseEvent) => {
-    // Only handle clicks on empty map space (not on POI markers)
-    if (
-      e.originalEvent.target instanceof Element &&
-      e.originalEvent.target.closest('.mapboxgl-marker')
-    ) {
-      return;
-    }
-
-    const coords: [number, number] = [e.lngLat.lng, e.lngLat.lat];
-
-    if (!temporaryMarker.current) {
-      const el = createNewPOIMarker(); // Using new POI style for the temporary marker
-
-      temporaryMarker.current = new mapboxgl.Marker({
-        element: el,
-        anchor: 'center',
-      })
-        .setLngLat(coords)
-        .addTo(map.current!);
-    } else {
-      temporaryMarker.current.setLngLat(coords);
-    }
-
-    // Reset selected POI and show popper for creating new POI
-    setSelectedPOI(null);
-    setCoordinates({ latitude: coords[1], longitude: coords[0] });
-    setCreatePopperOpen(true);
-    setListOpen(false);
-  }, []);
-
-  useEffect(() => {
-    if (!mapContainer.current || map.current) return;
-
-    map.current = new mapboxgl.Map({
-      container: mapContainer.current,
-      style: initialConfigRef.current.style,
-      center: initialConfigRef.current.center,
-      zoom: initialConfigRef.current.zoom,
-    });
-
-    map.current.addControl(new mapboxgl.NavigationControl(), 'bottom-left');
-    map.current.addControl(new mapboxgl.FullscreenControl(), 'bottom-left');
-
-    map.current.on('click', handleMapClick);
-
-    map.current.on('load', () => {
-      setMapLoading(true);
-    });
-
-    return () => {
-      if (map.current) {
-        map.current.off('click', handleMapClick);
-        map.current.remove();
-        map.current = null;
-      }
-      if (temporaryMarker.current) {
-        temporaryMarker.current.remove();
-        temporaryMarker.current = null;
-      }
-      removeTemporaryMarker();
-      Object.values(poiMarkers.current).forEach((marker) => marker.remove());
-      poiMarkers.current = {};
-    };
-  }, [handleMapClick, removeTemporaryMarker]);
-
-  useEffect(() => {
-    if (
-      map.current &&
-      isMapLoading &&
-      MAP_STYLE !== initialConfigRef.current.style
-    ) {
-      map.current.setStyle(MAP_STYLE);
-      initialConfigRef.current.style = MAP_STYLE;
-    }
-  }, [isMapLoading]);
 
   const handleClosePopper = () => {
     setCreatePopperOpen(false);

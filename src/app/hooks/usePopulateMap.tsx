@@ -7,14 +7,13 @@ import { POI } from '@/types/poi';
 
 type PopulateMapProps = {
   map: React.RefObject<mapboxgl.Map | null>;
-  isMapLoading: boolean;
   poiMarkers: React.RefObject<{ [key: string]: mapboxgl.Marker }>;
   poiResponse: POIResponse;
   handlePoiClick: (poi: POI) => void;
 };
 
 const usePopulateMap = (args: PopulateMapProps) => {
-  const { map, isMapLoading, poiMarkers, poiResponse, handlePoiClick } = args;
+  const { map, poiMarkers, poiResponse, handlePoiClick } = args;
 
   const createExistingPOIMarker = () => {
     const el = document.createElement('div');
@@ -62,10 +61,10 @@ const usePopulateMap = (args: PopulateMapProps) => {
   }, [map, poiMarkers, poiResponse.pois, setupPOIClickHandlers]);
 
   useEffect(() => {
-    if (map.current && isMapLoading) {
+    if (map.current) {
       addPOIMarkers();
     }
-  }, [isMapLoading, addPOIMarkers, map]);
+  }, [addPOIMarkers, map]);
 };
 
 export default usePopulateMap;
