@@ -5,12 +5,11 @@ import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { MapPopper } from './MapPopper';
 import { POIResponse } from '../hooks/useGetPOIs';
-import { MapPinCheck } from 'lucide-react';
-import { createRoot } from 'react-dom/client';
 import { POI } from '@/types/poi';
 import POIList from './POIList';
 import usePopulateMap from '../hooks/usePopulateMap';
 import useSetupMap from '../hooks/useSetupMap';
+import useMapChanges from '../hooks/useMapChanges';
 
 interface MapProps {
   poiResponse: POIResponse;
@@ -20,7 +19,7 @@ interface MapProps {
 export type Coordinates = {
   latitude: number;
   longitude: number;
-} | null;
+};
 
 const Map: React.FC<MapProps> = ({ poiResponse, handlePOIEdit }) => {
   const mapContainer = useRef<HTMLDivElement>(null);
@@ -30,7 +29,7 @@ const Map: React.FC<MapProps> = ({ poiResponse, handlePOIEdit }) => {
 
   const [isCreatePopperOpen, setCreatePopperOpen] = useState(false);
   const [isListOpen, setListOpen] = useState(false);
-  const [coordinates, setCoordinates] = useState<Coordinates>(null);
+  const [coordinates, setCoordinates] = useState<Coordinates | null>(null);
   const [selectedPOI, setSelectedPOI] = useState<POI | null>(null);
 
   const handlePoiClick = (poi: POI) => {
@@ -57,7 +56,7 @@ const Map: React.FC<MapProps> = ({ poiResponse, handlePOIEdit }) => {
         element: el,
         anchor: 'center',
       })
-        .setLngLat(coords)
+        .setLngLat([e.lngLat.lng, e.lngLat.lat])
         .addTo(map.current!);
     } else {
       temporaryMarker.current.setLngLat(coords);
@@ -85,36 +84,18 @@ const Map: React.FC<MapProps> = ({ poiResponse, handlePOIEdit }) => {
     handlePoiClick,
   });
 
-  const removeTemporaryMarker = useCallback(() => {
-    if (temporaryMarker.current) {
-      temporaryMarker.current.remove();
-      temporaryMarker.current = null;
-    }
-  }, []);
-
-  // Function for creating new POI marker
-  const createNewPOIMarker = () => {
-    const el = document.createElement('div');
-    el.className =
-      'p-2 rounded-full bg-blue-500 shadow-lg cursor-pointer hover:bg-blue-600 transition-colors';
-
-    const root = createRoot(el);
-    root.render(<MapPinCheck size={20} color="white" strokeWidth={2} />); // Changed icon color to white
-
-    return el;
-  };
-
-  const centerMap = useCallback((latitude: number, longitude: number) => {
-    if (map.current) {
-      // Fly to the location with animation
-      map.current.flyTo({
-        center: [longitude, latitude],
-        zoom: 15,
-        essential: true, // This animation is considered essential for the user experience
-        duration: 1000, // Animation duration in milliseconds
-      });
-    }
-  }, []);
+  const {
+    centerMap,
+    createNewPOIMarker,
+    getMarkerElement,
+    removeTemporaryMarker,
+  } = useMapChanges({
+    map,
+    temporaryMarker,
+    poiMarkers,
+    selectedPOI,
+    mapContainer,
+  });
 
   const handleClosePopper = () => {
     setCreatePopperOpen(false);
@@ -123,13 +104,6 @@ const Map: React.FC<MapProps> = ({ poiResponse, handlePOIEdit }) => {
       temporaryMarker.current.remove();
       temporaryMarker.current = null;
     }
-  };
-
-  const getMarkerElement = () => {
-    if (selectedPOI) {
-      return poiMarkers.current[selectedPOI.id]?.getElement() || null;
-    }
-    return temporaryMarker.current?.getElement() || null;
   };
 
   const handleToggleList = () => {
