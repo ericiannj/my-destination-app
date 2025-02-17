@@ -1,7 +1,6 @@
 'use client';
 
-import React, { useRef, useState, useCallback } from 'react';
-import mapboxgl from 'mapbox-gl';
+import React, { useRef, useState } from 'react';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { MapPopper } from './MapPopper';
 import { POIResponse } from '../hooks/useGetPOIs';
@@ -16,11 +15,6 @@ interface MapProps {
   handlePOIEdit: (poi: POI) => void;
 }
 
-export type Coordinates = {
-  latitude: number;
-  longitude: number;
-};
-
 const Map: React.FC<MapProps> = ({ poiResponse, handlePOIEdit }) => {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map>(null);
@@ -29,7 +23,6 @@ const Map: React.FC<MapProps> = ({ poiResponse, handlePOIEdit }) => {
 
   const [isCreatePopperOpen, setCreatePopperOpen] = useState(false);
   const [isListOpen, setListOpen] = useState(false);
-  const [coordinates, setCoordinates] = useState<Coordinates | null>(null);
   const [selectedPOI, setSelectedPOI] = useState<POI | null>(null);
 
   const handlePoiClick = (poi: POI) => {
@@ -38,36 +31,26 @@ const Map: React.FC<MapProps> = ({ poiResponse, handlePOIEdit }) => {
     removeTemporaryMarker();
   };
 
-  const handleMapClick = useCallback((e: mapboxgl.MapMouseEvent) => {
-    // Only handle clicks on empty map space (not on POI markers)
-    if (
-      e.originalEvent.target instanceof Element &&
-      e.originalEvent.target.closest('.mapboxgl-marker')
-    ) {
-      return;
-    }
-
-    const coords: [number, number] = [e.lngLat.lng, e.lngLat.lat];
-
-    if (!temporaryMarker.current) {
-      const el = createNewPOIMarker(); // Using new POI style for the temporary marker
-
-      temporaryMarker.current = new mapboxgl.Marker({
-        element: el,
-        anchor: 'center',
-      })
-        .setLngLat([e.lngLat.lng, e.lngLat.lat])
-        .addTo(map.current!);
-    } else {
-      temporaryMarker.current.setLngLat(coords);
-    }
-
-    // Reset selected POI and show popper for creating new POI
+  const handlePopperOpen = () => {
     setSelectedPOI(null);
-    setCoordinates({ latitude: coords[1], longitude: coords[0] });
     setCreatePopperOpen(true);
     setListOpen(false);
-  }, []);
+  };
+
+  const {
+    centerMap,
+    getMarkerElement,
+    removeTemporaryMarker,
+    coordinates,
+    handleMapClick,
+  } = useMapChanges({
+    map,
+    temporaryMarker,
+    poiMarkers,
+    selectedPOI,
+    mapContainer,
+    handlePopperOpen,
+  });
 
   useSetupMap({
     map,
@@ -82,19 +65,6 @@ const Map: React.FC<MapProps> = ({ poiResponse, handlePOIEdit }) => {
     poiMarkers,
     poiResponse,
     handlePoiClick,
-  });
-
-  const {
-    centerMap,
-    createNewPOIMarker,
-    getMarkerElement,
-    removeTemporaryMarker,
-  } = useMapChanges({
-    map,
-    temporaryMarker,
-    poiMarkers,
-    selectedPOI,
-    mapContainer,
   });
 
   const handleClosePopper = () => {

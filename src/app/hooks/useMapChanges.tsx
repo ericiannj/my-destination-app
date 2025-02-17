@@ -1,7 +1,8 @@
 import { POI } from '@/types/poi';
 import { MapPinCheck } from 'lucide-react';
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import { createRoot } from 'react-dom/client';
+import mapboxgl from 'mapbox-gl';
 
 type MapChangesProps = {
   map: React.RefObject<mapboxgl.Map | null>;
@@ -9,10 +10,18 @@ type MapChangesProps = {
   poiMarkers: React.RefObject<{ [key: string]: mapboxgl.Marker }>;
   temporaryMarker: React.RefObject<mapboxgl.Marker | null>;
   selectedPOI: POI | null;
+  handlePopperOpen: () => void;
+};
+
+export type Coordinates = {
+  latitude: number;
+  longitude: number;
 };
 
 const useMapChanges = (args: MapChangesProps) => {
-  const { map, temporaryMarker, poiMarkers, selectedPOI } = args;
+  const { map, temporaryMarker, poiMarkers, selectedPOI, handlePopperOpen } =
+    args;
+  const [coordinates, setCoordinates] = useState<Coordinates | null>(null);
 
   const removeTemporaryMarker = useCallback(() => {
     if (temporaryMarker.current) {
@@ -27,7 +36,7 @@ const useMapChanges = (args: MapChangesProps) => {
       'p-2 rounded-full bg-blue-500 shadow-lg cursor-pointer hover:bg-blue-600 transition-colors';
 
     const root = createRoot(el);
-    root.render(<MapPinCheck size={20} color="white" strokeWidth={2} />); // Changed icon color to white
+    root.render(<MapPinCheck size={20} color="white" strokeWidth={2} />);
 
     return el;
   };
@@ -38,7 +47,7 @@ const useMapChanges = (args: MapChangesProps) => {
         map.current.flyTo({
           center: [longitude, latitude],
           zoom: 15,
-          essential: true, // This animation is considered essential for the user experience
+          essential: true,
           duration: 1000,
         });
       }
@@ -53,11 +62,40 @@ const useMapChanges = (args: MapChangesProps) => {
     return temporaryMarker.current?.getElement() || null;
   };
 
+  const handleMapClick = useCallback((e: mapboxgl.MapMouseEvent) => {
+    if (
+      e.originalEvent.target instanceof Element &&
+      e.originalEvent.target.closest('.mapboxgl-marker')
+    ) {
+      return;
+    }
+
+    const coords: [number, number] = [e.lngLat.lng, e.lngLat.lat];
+
+    if (!temporaryMarker.current) {
+      const el = createNewPOIMarker();
+
+      temporaryMarker.current = new mapboxgl.Marker({
+        element: el,
+        anchor: 'center',
+      })
+        .setLngLat([e.lngLat.lng, e.lngLat.lat])
+        .addTo(map.current!);
+    } else {
+      temporaryMarker.current.setLngLat(coords);
+    }
+
+    setCoordinates({ latitude: coords[1], longitude: coords[0] });
+    handlePopperOpen();
+  }, []);
+
   return {
+    coordinates,
     removeTemporaryMarker,
     createNewPOIMarker,
     centerMap,
     getMarkerElement,
+    handleMapClick,
   };
 };
 
