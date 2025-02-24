@@ -11,6 +11,7 @@ type MapChangesProps = {
   temporaryMarker: React.RefObject<mapboxgl.Marker | null>;
   selectedPOI: POI | null;
   handlePopperOpen: () => void;
+  isCreateMode: boolean;
 };
 
 export type Coordinates = {
@@ -19,8 +20,14 @@ export type Coordinates = {
 };
 
 const useMapChanges = (args: MapChangesProps) => {
-  const { map, temporaryMarker, poiMarkers, selectedPOI, handlePopperOpen } =
-    args;
+  const {
+    map,
+    temporaryMarker,
+    poiMarkers,
+    selectedPOI,
+    handlePopperOpen,
+    isCreateMode,
+  } = args;
   const [coordinates, setCoordinates] = useState<Coordinates | null>(null);
 
   const removeTemporaryMarker = useCallback(() => {
@@ -62,32 +69,37 @@ const useMapChanges = (args: MapChangesProps) => {
     return temporaryMarker.current?.getElement() || null;
   };
 
-  const handleMapClick = useCallback((e: mapboxgl.MapMouseEvent) => {
-    if (
-      e.originalEvent.target instanceof Element &&
-      e.originalEvent.target.closest('.mapboxgl-marker')
-    ) {
-      return;
-    }
+  const handleMapClick = useCallback(
+    (e: mapboxgl.MapMouseEvent) => {
+      if (!isCreateMode) return;
 
-    const coords: [number, number] = [e.lngLat.lng, e.lngLat.lat];
+      if (
+        e.originalEvent.target instanceof Element &&
+        e.originalEvent.target.closest('.mapboxgl-marker')
+      ) {
+        return;
+      }
 
-    if (!temporaryMarker.current) {
-      const el = createNewPOIMarker();
+      const coords: [number, number] = [e.lngLat.lng, e.lngLat.lat];
 
-      temporaryMarker.current = new mapboxgl.Marker({
-        element: el,
-        anchor: 'center',
-      })
-        .setLngLat([e.lngLat.lng, e.lngLat.lat])
-        .addTo(map.current!);
-    } else {
-      temporaryMarker.current.setLngLat(coords);
-    }
+      if (!temporaryMarker.current) {
+        const el = createNewPOIMarker();
 
-    setCoordinates({ latitude: coords[1], longitude: coords[0] });
-    handlePopperOpen();
-  }, []);
+        temporaryMarker.current = new mapboxgl.Marker({
+          element: el,
+          anchor: 'center',
+        })
+          .setLngLat([e.lngLat.lng, e.lngLat.lat])
+          .addTo(map.current!);
+      } else {
+        temporaryMarker.current.setLngLat(coords);
+      }
+
+      setCoordinates({ latitude: coords[1], longitude: coords[0] });
+      handlePopperOpen();
+    },
+    [isCreateMode],
+  );
 
   return {
     coordinates,
