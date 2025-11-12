@@ -24,7 +24,7 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  console.log('data');
+  console.log('dataa');
 }>) { 
   return (
     <html lang="en">
